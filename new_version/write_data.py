@@ -10,7 +10,7 @@ org = "AlexPera"
 bucket = "MusicLibrary"
 currTime = datetime.utcnow() #.today()
 
-text_file = open("outputAppleScript.txt", encoding='utf-16')
+text_file = open("/Users/alex/AppsMine/PythonTest Music/new_version/outputAppleScript.txt", encoding='utf-16')
 fileData = text_file.read()
 text_file.close()
 
@@ -30,7 +30,7 @@ with InfluxDBClient(url="http://localhost:8086", token=token, org=org) as client
         artist = list[i+1] 
         album = list[i+2]
         count = int(list[i+3])
-        print("Adding " + name + " by " + artist + " (" + str(count) + ")")
+        #print("Adding " + name + " by " + artist + " (" + str(count) + ")")
         if(type(count) != int):
             script = 'display notification "Some numbers are wrong!" with title "Error in Music Library Script!"'
             p = Popen(['osascript', '-'], stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
@@ -44,3 +44,9 @@ with InfluxDBClient(url="http://localhost:8086", token=token, org=org) as client
             .time(currTime, WritePrecision.NS)
         
         write_api.write(bucket, org, point)
+
+
+script = 'display notification "Finished running music script" with title "Added all data to Influx!"'
+p = Popen(['osascript', '-'], stdin=PIPE, stdout=PIPE, stderr=PIPE, universal_newlines=True)
+stdout, stderr = p.communicate(script)
+exit(1)
