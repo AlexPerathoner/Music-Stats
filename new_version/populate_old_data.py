@@ -59,7 +59,7 @@ with InfluxDBClient(url="http://localhost:8086", token=token, org=org) as client
                 
                 write_api.write(bucket, org, point)
 
-        print(str(dateObj) + " - " + name + " - " + artist + " - " + album)
+        print(name + " - " + artist + " - " + album)
         print(datetime.now() - begin_time)
         #print(type(artist))
 
