@@ -1,0 +1,47 @@
+import matplotlib.pyplot as plt
+import numpy as np; np.random.seed(1)
+
+
+names = np.array(list("ABCDEFGHIJKLMNO"))
+
+norm = plt.Normalize(1,4)
+cmap = plt.cm.RdYlGn
+
+fig,ax = plt.subplots()
+lines = []
+for i in range(0, 5):
+	x = np.sort(np.random.rand(15))
+	y = np.sort(np.random.rand(15))
+	line, = plt.plot(x,y, marker="o")
+	print(type(line))
+	lines.append(line)
+
+
+annot = ax.annotate("HEY", xy=(0,0), xytext=(-20,20),textcoords="offset points",bbox=dict(boxstyle="round", fc="w"),arrowprops=dict(arrowstyle="->"))
+annot.set_visible(False)
+
+
+def update_annot(i, ind):
+	x,y = i.get_data()
+	annot.xy = (x[ind["ind"][0]], y[ind["ind"][0]])
+	text = "{}, {} HELLO".format(" ".join(list(map(str,ind["ind"]))), " ".join([names[n] for n in ind["ind"]]))
+	annot.set_text(text)
+	annot.get_bbox_patch().set_alpha(0.4)
+
+
+def hover(event):
+	vis = annot.get_visible()
+	#if event.inaxes == ax:
+	for i in lines:
+		cont, ind = i.contains(event)
+		if cont:
+			print(i, ind)
+			update_annot(i, ind)
+			annot.set_visible(True)
+			fig.canvas.draw_idle()
+
+	
+
+fig.canvas.mpl_connect("motion_notify_event", hover)
+
+plt.show()

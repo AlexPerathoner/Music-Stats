@@ -3,10 +3,10 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
-from datetime import datetime
-
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
+
+begin_time = datetime.now()
 
 # You can generate an API token from the "API Tokens Tab" in the UI
 token = "m3_qTJNHan6NP0jFkdkLjFUdtNy5cCnFnQpWQVfDDUXQtmMf8o-udOP8t9yxPDKQHkvKqPtvJpKLdO-FaoG4mQ=="
@@ -18,7 +18,10 @@ cols = ['20201021', '20201022', '20201023', '20201025', '20201026', '20201027', 
 with open('final.csv', encoding='UTF-16') as namesFile:
     df = pd.read_csv(namesFile, sep="\t")
 
+meta = ["album", "artist"]
+df[meta] = df[meta].replace(np.nan, "")
 
+#df[cols] = df[cols].replace(-1, np.nan)
 
 with InfluxDBClient(url="http://localhost:8086", token=token, org=org) as client:
     write_api = client.write_api(write_options=SYNCHRONOUS)
@@ -31,6 +34,22 @@ with InfluxDBClient(url="http://localhost:8086", token=token, org=org) as client
             count = df[col][index]
             dateObj = datetime.strptime(col, "%Y%m%d")
             if(count != -1):
+                if(type(count) != np.int64):
+                    print(str(dateObj) + " - " + name + " " + artist + ": " + str(count))
+                    print("Error 2")
+                    print(type(count))
+                    exit(2)
+
+                if(type(artist) != str):
+                    print(str(dateObj) + " - " + name + " " + artist + ": " + str(count))
+                    print("Error 3")
+                    exit(3)
+
+                if(type(album) != str):
+                    print(str(dateObj) + " - " + name + " " + artist + ": " + str(count))
+                    print("Error 4")
+                    exit(4)
+
                 #print(str(dateObj) + " - " + name + " " + artist + ": " + str(count))
                 point = Point(name) \
                     .field("playCount", count) \
@@ -40,5 +59,9 @@ with InfluxDBClient(url="http://localhost:8086", token=token, org=org) as client
                 
                 write_api.write(bucket, org, point)
 
-        print(str(dateObj) + " - " + name + " " + artist)
+        print(str(dateObj) + " - " + name + " - " + artist + " - " + album)
+        print(datetime.now() - begin_time)
+        #print(type(artist))
 
+print("Finished in:")
+print(datetime.now() - begin_time)
