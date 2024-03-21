@@ -56,7 +56,7 @@ In addition to the minor problems already listed above, some major raised:
 
 Somewhere in the creation of the csv file something went terribly wrong. This becomes obvious when plotting the data:
 
-![](-error.jpeg)
+![](error.jpeg)
 
 This happened multiple times. As I would later find out these moments coincided with the addition of new songs to the library.
 
@@ -82,13 +82,13 @@ else:
 
 I used Excel to visualize the csv file in a better way. Scrolling through it was painful at first.
 
-![](-data1.png)
+![](data1.png)
 
 With some attention it's possible to see that some block of rows are basically shifted, by a number of rows.
 
 At some point my eyes were hurting so I found a better way to work with this file:
 
-![](-data2.png)
+![](data2.png)
 
 By filling the cells with a color scale the shift becomes obvious.
 
@@ -175,7 +175,7 @@ with InfluxDBClient(url="http://localhost:8086", token=token, org=org) as client
 
 Soon, the data is viewable in the Data Explorer in the browser:
 
-![](-data3.png)
+![](data3.png)
 
 -
 

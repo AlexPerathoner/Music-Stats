@@ -1,2 +1,4 @@
 .DS_Store
 charts/
+*.mp4
+*.sqlite3
