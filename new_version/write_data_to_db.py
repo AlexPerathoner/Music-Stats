@@ -25,12 +25,9 @@ def init_db():
     print("Database initialized")
 
 def add_meta_data():
-    # read meta data
-    # format of csv: song_id;song_name;artist_name;album_name\n
-    # format utf 16
     meta = pd.read_csv(META_FILE, sep=';', encoding='utf-16', header=None)
-    meta.columns = ['song_id', 'song_name', 'artist_name', 'album_name', 'test']
-    # remove test column
+    meta.columns = ['song_id', 'song_name', 'artist_name', 'album_name', 'date_added', 'test']
+    # remove test column - no idea why present - shouldn't be there
     meta = meta.drop('test', axis=1)
     print("Found %d tracks" % len(meta))
 
@@ -40,11 +37,11 @@ def add_meta_data():
     # insert meta data to database
     conn = sqlite3.connect(DB_FILE)
     for row in meta.iterrows():
-        conn.execute("INSERT OR REPLACE INTO tracks (song_id, song_name, artist_name, album_name) VALUES (?, ?, ?, ?)", (row[1]['song_id'], row[1]['song_name'], row[1]['artist_name'], row[1]['album_name']))
+        conn.execute("INSERT OR REPLACE INTO tracks (song_id, song_name, artist_name, album_name, date_added) VALUES (?, ?, ?, ?, ?)", (row[1]['song_id'], row[1]['song_name'], row[1]['artist_name'], row[1]['album_name'], row[1]['date_added']))
 
     conn.commit()
     conn.close()
-# 4089, 4107
+    
     print("Meta data written to database")
 
 def add_count_data():

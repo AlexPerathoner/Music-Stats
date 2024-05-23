@@ -2,3 +2,5 @@
 charts/
 *.mp4
 *.sqlite3
+new_version/__pycache__
+*.log

@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS tracks (
 	song_name text NOT NULL,
 	artist_name text,
 	album_name text,
+	date_added date,
     PRIMARY KEY (song_id)
 );
 

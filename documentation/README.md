@@ -1,6 +1,6 @@
 # Documenting music stats
 
-Since October 2020 a script has been running on my machine daily:
+Since October 2020 a script has been running on my machine daily: **$$OUTDATED - SEE END OF FILE FOR RECENT CHANGES$$**
 
 ```sh
 /usr/bin/automator "/Users/alex/AppsMine/PythonTest Music/exportLibrary.workflow"
@@ -185,3 +185,13 @@ Fixing the values of the songs added when the script was already running was not
 ## Updating the Lingon script
 
 Just change the python script to the one who adds the data to the DB instead of updating the csv. Removing other scripts as well.
+
+## 2024.03.22
+- Influxdb (bzw Docker) is too resource intensive. Using sqlite3 instead. Not the best option as it's not time based, so lots of rows (one for each song for each point in time)
+- using `song id` instead of combination of name + artist + album -> those can change in time without loosing data or having to maintaing anything
+- using `date added` instead of looking at when data is available for first time -> enables to have accurate calculations for pre-existing songs in library before new system
+- changed applescript to export two csv. one with `track_id;name;artist;album;date added`, other with only today's play count 
+- todo: penv not working (Prio 1)
+- todo: migrate old data into db (Prio 1)
+- todo: png graph & automatic reports (like spotify wrapped) (Prio 2)
+- todo: artist id too for more stats (Prio 3)
