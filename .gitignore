@@ -2,5 +2,8 @@
 charts/
 *.mp4
 *.sqlite3
-new_version/__pycache__
+__pycache__
 *.log
+debug-scripts/fixer-scripts/out/*.png
+debug-scripts/fixer-scripts/db-baks
+count-data-while-fixing

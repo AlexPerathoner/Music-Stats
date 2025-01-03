@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>AMApplicationBuild</key>
-	<string>523</string>
+	<string>526</string>
 	<key>AMApplicationVersion</key>
 	<string>2.10</string>
 	<key>AMDocumentVersion</key>
@@ -51,7 +51,7 @@
 				<key>ActionParameters</key>
 				<dict>
 					<key>source</key>
-					<string>on formatDate(theDate)	set year_ to year of theDate as string	set month_ to text -2 thru -1 of ("0" &amp; ((month of theDate) as integer))	set day_ to text -2 thru -1 of ("0" &amp; day of theDate)	return year_ &amp; "-" &amp; month_ &amp; "-" &amp; day_end formatDateon run {input, parameters}	set theString to ""			tell application "Music"		set x to get every track		repeat with s in x									set theString to theString &amp; "" &amp; (database ID of s &amp; ";" &amp; (name of s) &amp; ";" &amp; (artist of s) &amp; ";" &amp; (album of s) &amp; ";" &amp; (my formatDate(date added of s)) &amp; ";" &amp; "")		end repeat	end tell		return theStringend run</string>
+					<string>on formatDate(theDate)	set year_ to year of theDate as string	set month_ to text -2 thru -1 of ("0" &amp; ((month of theDate) as integer))	set day_ to text -2 thru -1 of ("0" &amp; day of theDate)	return year_ &amp; "-" &amp; month_ &amp; "-" &amp; day_end formatDateon run {input, parameters}	set theString to ""		tell application "Music"		set x to get every track		repeat with s in x						set realDuration to ((duration of s) - ((duration of s) - (finish of s)) - (start of s)) as integer			set trackPath to POSIX path of (get location of s)						set theString to theString &amp; "" &amp; (database ID of s &amp; ";" &amp; (name of s) &amp; ";" &amp; (artist of s) &amp; ";" &amp; (album of s) &amp; ";" &amp; (my formatDate(date added of s)) &amp; ";" &amp; (trackPath) &amp; ";" &amp; (played count of s) &amp; ";" &amp; (cloud status of s) &amp; ";" &amp; "")		end repeat	end tell	return theStringend run</string>
 				</dict>
 				<key>BundleIdentifier</key>
 				<string>com.apple.Automator.RunScript</string>
@@ -105,7 +105,7 @@ end run</string>
 				<key>isViewVisible</key>
 				<true/>
 				<key>location</key>
-				<string>634.000000:496.000000</string>
+				<string>549.000000:247.000000</string>
 				<key>nibPath</key>
 				<string>/System/Library/Automator/Run AppleScript.action/Contents/Resources/Base.lproj/main.nib</string>
 			</dict>
@@ -213,7 +213,7 @@ end run</string>
 				<key>isViewVisible</key>
 				<true/>
 				<key>location</key>
-				<string>634.000000:599.000000</string>
+				<string>549.000000:350.000000</string>
 				<key>nibPath</key>
 				<string>/System/Library/Automator/Set Value of Variable.action/Contents/Resources/Base.lproj/main.nib</string>
 			</dict>
@@ -259,7 +259,7 @@ end run</string>
 					<dict>
 						<key>tokenizedValue</key>
 						<array>
-							<string>output_as_meta</string>
+							<string>play_count_export.txt</string>
 						</array>
 					</dict>
 					<key>newFileTextEncoding</key>
@@ -287,9 +287,9 @@ end run</string>
 					<key>checkedForDefaultEncoding</key>
 					<true/>
 					<key>newFileFolderPath</key>
-					<string>~/AppsMine/PythonTest Music/new_version</string>
+					<string>~/AppsMine/music-stats/count-data-while-fixing/temp</string>
 					<key>newFileName</key>
-					<string>output_as_meta</string>
+					<string>play_count_export.txt</string>
 					<key>newFileTextEncoding</key>
 					<integer>10</integer>
 					<key>replaceExistingFiles</key>
@@ -416,7 +416,7 @@ end run</string>
 				<key>isViewVisible</key>
 				<true/>
 				<key>location</key>
-				<string>634.000000:772.000000</string>
+				<string>549.000000:523.000000</string>
 				<key>nibPath</key>
 				<string>/System/Library/Automator/New Text File.action/Contents/Resources/Base.lproj/main.nib</string>
 			</dict>
@@ -426,19 +426,19 @@ end run</string>
 	</array>
 	<key>connectors</key>
 	<dict>
-		<key>C3C34794-B200-4931-B279-880D91AF2EB6</key>
-		<dict>
-			<key>from</key>
-			<string>04BDE4C4-3259-4FC8-B5C2-07D74BFC6C3A - 04BDE4C4-3259-4FC8-B5C2-07D74BFC6C3A</string>
-			<key>to</key>
-			<string>E3E4222A-2831-4874-9599-C57C90BA4155 - E3E4222A-2831-4874-9599-C57C90BA4155</string>
-		</dict>
-		<key>EFAE3FBB-6BEE-4448-B48D-942CA13CCC90</key>
+		<key>7D57B0CB-CE88-4535-A308-3F57302020FC</key>
 		<dict>
 			<key>from</key>
 			<string>F10968BF-BA0F-4649-99D5-2E72FF4B92EF - F10968BF-BA0F-4649-99D5-2E72FF4B92EF</string>
 			<key>to</key>
 			<string>04BDE4C4-3259-4FC8-B5C2-07D74BFC6C3A - 04BDE4C4-3259-4FC8-B5C2-07D74BFC6C3A</string>
+		</dict>
+		<key>BFEA18AD-7E97-4C41-8B5B-0DBF7ECECB7E</key>
+		<dict>
+			<key>from</key>
+			<string>04BDE4C4-3259-4FC8-B5C2-07D74BFC6C3A - 04BDE4C4-3259-4FC8-B5C2-07D74BFC6C3A</string>
+			<key>to</key>
+			<string>E3E4222A-2831-4874-9599-C57C90BA4155 - E3E4222A-2831-4874-9599-C57C90BA4155</string>
 		</dict>
 	</dict>
 	<key>variables</key>
