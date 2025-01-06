@@ -6,7 +6,8 @@ import subprocess
 import pandas as pd
 import logging
 from utils.hash import get_hash
-from utils.errors import AutomatorError
+from utils.errors import AutomatorError, HashNotGeneratedError
+from utils.db import get_paths_and_hashes_in_db
 
 
 DB_FILE = "music-play-count-db.sqlite3"
@@ -69,43 +70,67 @@ def get_all_songs_from_apple_music(logger, output_path):
     return df
 
 
-def export_hashes_and_counts_to_csv(logger, path_name):
+def export_hashes_and_counts_to_csv(logger, paths_set, output_csv_path):
+    # todo refactor this
     """
     Converts applescript result to csv and calculates for each song the hashes
     """
     output_path = r"/Users/alex/AppsMine/music-stats/temp/play_count_export.txt"
-    logger.info(f"Converting applescript result {output_path} to csv {path_name}")
+    logger.info(f"Converting applescript result {output_path} to csv {output_csv_path}")
 
     df = get_all_songs_from_apple_music(logger, output_path)
     logger.info("Retrieved %d songs" % len(df))
+    should_recalculate_hashes = False
+    if paths_set is not None:
+        new_paths_set = set()
+        for path in df["track_path"]:
+            new_paths_set.add(path)
+        if new_paths_set == paths_set:
+            logger.info(
+                "All paths are already in db and nothing has changed. Skipping hashes generation. Importing from db instead."
+            )
+            paths_and_hashes_map = get_paths_and_hashes_in_db(logger, DB_FILE)
+            df["hash"] = df["track_path"].map(paths_and_hashes_map)
+            logger.info("Finished mapping hashes.")
 
-    # calculating hash
-    logger.info("Calculating hash...")
-    start_time = datetime.datetime.now()
-    # df['hash'] = df.apply(lambda row: get_hash(row['track_path']), axis=1) # do this in a loop
-    i = 0
-    tot = len(df)
-    for row in df.iterrows():
-        track_path = row[1][5]
-        track_hash = get_hash(logger, track_path)
-        df.loc[row[0], "hash"] = track_hash
-        i += 1
-        if i % 50 == 0:
-            logger.info(f"Processed {i} songs.")
+        else:
+            logger.info("Some paths changed. Recalculating hashes.")
+            should_recalculate_hashes = True
+    else:
+        logger.info("No paths set. Recalculating hashes.")
+        should_recalculate_hashes = True
 
-    logger.info(
-        "Finished calculating hash in "
-        + str(datetime.datetime.now() - start_time)
-        + " s."
-    )
+    if should_recalculate_hashes:
+        tot = len(df)
+        logger.info(f"Calculating hash for {tot} songs...")
+        start_time = datetime.datetime.now()
+        # df['hash'] = df.apply(lambda row: get_hash(row['track_path']), axis=1) # do this in a loop
+        i = 0
+        for row in df.iterrows():
+            track_path = row[1]["track_path"]
+            track_hash = get_hash(logger, track_path)
+            df.loc[row[0], "hash"] = track_hash
+            i += 1
+            if i % 50 == 0:
+                logger.info(f"Processed {i} songs.")
+
+        logger.info(
+            "Finished calculating hash in "
+            + str(datetime.datetime.now() - start_time)
+            + " s."
+        )
     # hash is None
     df_filtered_no_hash = df[df["hash"].isna()]
     logger.info("Found %d songs with no hash" % len(df_filtered_no_hash))
-    logger.debug(df_filtered_no_hash)
+    if len(df_filtered_no_hash) > 0:
+        logger.error("Found %d songs with no hash" % len(df_filtered_no_hash))
+        raise HashNotGeneratedError(
+            "Found %d songs with no hash" % len(df_filtered_no_hash)
+        )
 
     logger.info("Exporting to csv...")
 
-    df.to_csv(path_name, index=False)
+    df.to_csv(output_csv_path, index=False)
 
 
 def main():
@@ -132,7 +157,7 @@ def main():
     logger.addHandler(fh)
     todays_date = datetime.date.today().strftime("%Y-%m-%d")
     path_name = "count-data-while-fixing/play-count-export" + todays_date + ".csv"
-    export_hashes_and_counts_to_csv(logger, path_name)
+    export_hashes_and_counts_to_csv(logger, None, path_name)
 
 
 if __name__ == "__main__":

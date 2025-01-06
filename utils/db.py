@@ -11,14 +11,11 @@ from utils.warnings import (
 ### used in main daemon
 
 
-def is_row_in_db(logger, hash_track, date_from_path, new_play_count, cur):
-    sql_str = f"""
-        select count
-        from play_counts
-        where hash = '{hash_track}' and date_count = '{date_from_path}' and count = {new_play_count}
-    """
-    logger.debug(sql_str)
-    cur.execute(sql_str)
+def is_row_in_db(hash_track, date_from_path, cur):
+    cur.execute(
+        "select count from play_counts where hash = ? and date_count = ?",
+        (hash_track, date_from_path),
+    )
     result = cur.fetchall()
     return len(result) > 0
 
@@ -89,6 +86,34 @@ def insert_song_into_db(track, cur):
     cur.execute(insert_sql_str)
     if cur.rowcount == 0 or cur.rowcount > 1:
         raise InsertTrackError(f"Could not insert track {hash_track}")
+
+
+def get_paths_set_in_db(logger, DB_FILE):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute("select path from tracks")
+    rows = cur.fetchall()
+    paths_set = set()
+    for row in rows:
+        paths_set.add(row[0])
+    logger.debug(f"Found {len(paths_set)} paths in db.")
+    conn.close()
+    return paths_set
+
+
+def get_paths_and_hashes_in_db(logger, DB_FILE):
+    conn = sqlite3.connect(DB_FILE)
+    cur = conn.cursor()
+    cur.execute("select path, hash from tracks")
+    rows = cur.fetchall()
+    paths_and_hashes_map = {}
+    for row in rows:
+        track_path = row[0]
+        track_hash = row[1]
+        paths_and_hashes_map[track_path] = track_hash
+    logger.debug(f"Imported {len(paths_and_hashes_map)} paths and hashes from db.")
+    conn.close()
+    return paths_and_hashes_map
 
 
 ### used in checks

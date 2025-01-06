@@ -1,20 +1,22 @@
-"""Script that should run in background each day
+"""Script that should run in background each day to insert new play counts into db
 """
 
 import datetime
 import sqlite3
 import pandas as pd
 import logging
+import sys
 from utils.csv import export_hashes_and_counts_to_csv
 from utils.applescript import (
     display_error_notification,
     display_warning_notification,
-    display_fiinish_notification,
+    display_finish_notification,
 )
 from utils.db import (
     is_row_in_db,
     update_song_in_db,
     insert_song_into_db,
+    get_paths_set_in_db,
 )
 from utils.errors import (
     TrackHashNotFoundError,
@@ -22,6 +24,7 @@ from utils.errors import (
     InsertPlayCountError,
     UpdatePlayCountError,
     InsertTrackError,
+    HashNotGeneratedError,
     UpdateTrackError,
 )
 from utils.warnings import (
@@ -132,7 +135,7 @@ def import_csv_into_db(csv_file_path, insert_date):
             )
         try:
             # check if row already exists
-            if is_row_in_db(logger, hash_track, insert_date, new_play_count, cur):
+            if is_row_in_db(hash_track, insert_date, cur):
                 logger.debug(f"Row already in db {hash_track}. Updating...")
                 # this can happen if running as daemon, too
                 # e.g. when running at least 2 times on the same day and both times the count increased
@@ -188,7 +191,9 @@ def main():
     CSV_FILE_PATH = "temp/play_count_export.csv"
     try:
         start_time = datetime.datetime.now()
-        export_hashes_and_counts_to_csv(logger, CSV_FILE_PATH)
+        paths_set = get_paths_set_in_db(logger, DB_FILE)
+        logger.info(f"Found {len(paths_set)} paths in db.")
+        export_hashes_and_counts_to_csv(logger, paths_set, CSV_FILE_PATH)
         end_time = datetime.datetime.now()
         logger.info(f"Exported to csv in {end_time - start_time} s.")
 
@@ -201,29 +206,34 @@ def main():
         logger.info(f"Imported to db in {end_time - start_time} s.")
 
         logger.info(f"Finished with {len(errors)} errors, {len(warnings)} warnings.")
-        if len(errors) > 0:
-            logger.error(f"Errors: {errors}")
-            display_error_notification()
+        # first display warnings, then errors -> error notification will land on top
         if len(warnings) > 0:
             logger.warning(f"Warnings: {warnings}")
             display_warning_notification()
+        if len(errors) > 0:
+            logger.error(f"Errors: {errors}")
+            display_error_notification()
+        else:
+            # showing only if no errors, draw attention to errors if any are present (even non-fatal)
+            display_finish_notification(updates_counter)
     except (
         PlayCountDecreasedError,
         InsertPlayCountError,
         UpdatePlayCountError,
         InsertTrackError,
         UpdateTrackError,
+        HashNotGeneratedError,
     ) as e:
         logger.error(
             f"High prio error happened of type {type(e)}. Exited immediately. {e}"
         )
         display_error_notification()
+        sys.exit(1)
     except KeyboardInterrupt as e:
         logger.info("interrupted.")
     except Exception as e:
         logger.error(f"Fatal uncaught error {type(e)}: {e}")
-
-    display_fiinish_notification(updates_counter)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
@@ -236,7 +246,7 @@ if __name__ == "__main__":
     logging.getLogger("matplotlib.font_manager").disabled = True
     logging.getLogger("numba").setLevel(logging.WARNING)
     ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)  # or any other level
+    ch.setLevel(logging.DEBUG)  # CONSOLE level
     ch.setFormatter(FORMATTER)
     logger.addHandler(ch)
     fh = logging.FileHandler(
@@ -244,7 +254,7 @@ if __name__ == "__main__":
         + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         + ".log"
     )
-    fh.setLevel(logging.DEBUG)  # or any level you want
+    fh.setLevel(logging.DEBUG)  # FILE level
     fh.setFormatter(FORMATTER)
     logger.addHandler(fh)
     main()

@@ -16,20 +16,15 @@ def complete_df(df):
     """
     max_date = df["date_count"].max()
     last_day_for_each_song_df = df.groupby("hash")["date_count"].max()
-    for hash, last_day in last_day_for_each_song_df.iteritems():
+    for hash, last_day in last_day_for_each_song_df.items():
         count = df[df["hash"] == hash]["count"].iloc[-1]
         if last_day == max_date:
             continue
         # print(f"Hash: {hash}, last_day: {last_day}, count: {count}")
 
         # add a row for the last day with same count as last day
-        df = df.append(
-            {
-                "hash": hash,
-                "count": count,
-                "date_count": max_date,
-            },
-            ignore_index=True,
+        df = pd.concat(
+            [df, pd.DataFrame([{"hash": hash, "count": count, "date_count": max_date}])]
         )
     return df
 

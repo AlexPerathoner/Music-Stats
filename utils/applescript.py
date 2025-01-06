@@ -12,7 +12,7 @@ def display_notification(title, message, beep_count=1):
     subprocess.run(["osascript", "-e", f"beep {beep_count}"])
 
 
-def display_fiinish_notification(updates_counter):
+def display_finish_notification(updates_counter):
     if updates_counter > 0:
         display_notification(
             "Music Stats: Data inserted!",
