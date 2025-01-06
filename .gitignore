@@ -7,3 +7,4 @@ __pycache__
 debug-scripts/fixer-scripts/out/*.png
 debug-scripts/fixer-scripts/db-baks
 count-data-while-fixing
+out/*.png

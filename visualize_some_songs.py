@@ -4,9 +4,34 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
-from utils import parse_date
+import os
+from utils.date import parse_date
 
 DB_FILE = "music-play-count-db.sqlite3"
+
+
+def complete_df(df):
+    """Adds a data point for all songs that don't have some data on the last day.
+    This data should not be present in the db, but is added here to make the plot look nicer.
+    """
+    max_date = df["date_count"].max()
+    last_day_for_each_song_df = df.groupby("hash")["date_count"].max()
+    for hash, last_day in last_day_for_each_song_df.iteritems():
+        count = df[df["hash"] == hash]["count"].iloc[-1]
+        if last_day == max_date:
+            continue
+        # print(f"Hash: {hash}, last_day: {last_day}, count: {count}")
+
+        # add a row for the last day with same count as last day
+        df = df.append(
+            {
+                "hash": hash,
+                "count": count,
+                "date_count": max_date,
+            },
+            ignore_index=True,
+        )
+    return df
 
 
 def visualize_song_time_series(df):
@@ -93,6 +118,8 @@ def visualize_song_time_series(df):
     date_str = now.strftime("%Y%m%d")
     time_str = now.strftime("%H%M%S")
     filename = f"out/plot-{date_str}-{time_str}.png"
+    if not os.path.exists("out"):
+        os.makedirs("out")
     plt.savefig(filename, dpi=300)
 
     # Show the plot
@@ -103,61 +130,23 @@ if __name__ == "__main__":
     DB_FILE = "music-play-count-db.sqlite3"
 
     ids = []
-    song_ids_to_ignore = [
-        8143,
-        10233,
-        5145,
-        7641,
-        7833,
-        8037,
-        8041,
-        8045,
-        8075,
-        8189,
-        8251,
-        8499,
-        9321,
-        9477,
-    ]
+    song_ids_to_ignore = []
 
-    # count_data = get_count_data_for_ids(DB_FILE, ids)
-    # df = pd.DataFrame(
-    #     count_data,
-    #     columns=[
-    #         "song_id",
-    #         "count",
-    #         "date_count",
-    #         "hash",
-    #         "last_played_count",
-    #         "song_name",
-    #     ],
-    # )
-
-    # for new db
-    # df = pd.DataFrame(
-    #     count_data,
-    #     columns=[
-    #         "hash",
-    #         "count",
-    #         "date_count",
-    #         "song_id",
-    #         "last_played_count",
-    #         "song_name",
-    #     ],
-    # )
-
-    # count_data = get_count_data_for_ids_from_backup_raw(DB_FILE, ids)
     conn = sqlite3.connect(DB_FILE)
     cur = conn.cursor()
-    hashes = [
-        "ff2ce0ef451765215e548d358b48413b6c9d92d4071bdc7cdaa377a678e6e284",
-    ]
-    sql_str = f"""
-        select play_counts.hash, count, date_count, date_added, last_play_date, last_play_count
-        from play_counts left join tracks on tracks.hash = play_counts.hash
-        """
-    # where play_counts.hash in ({','.join([f"'{hash}'" for hash in hashes])})
-    # """
+    hashes = []
+    if len(hashes) != 0:
+        sql_str = f"""
+            select play_counts.hash, count, date_count, date_added
+            from play_counts left join tracks on tracks.hash = play_counts.hash
+            where play_counts.hash in ({','.join([f"'{hash}'" for hash in hashes])})
+            """
+    else:
+        sql_str = f"""
+            select play_counts.hash, count, date_count, date_added
+            from play_counts left join tracks on tracks.hash = play_counts.hash
+            """
+    print(sql_str)
     cur.execute(sql_str)
     count_data = cur.fetchall()
     df = pd.DataFrame(
@@ -167,9 +156,9 @@ if __name__ == "__main__":
             "count",
             "date_count",
             "date_added",
-            "last_play_date",
-            "last_play_count",
         ],
     )
-
+    if len(hashes) == 0:
+        df = df.drop(columns=["date_added"])
+        df = complete_df(df)
     visualize_song_time_series(df)
