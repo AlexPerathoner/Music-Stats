@@ -6,6 +6,7 @@ from utils.errors import (
 from utils.warnings import (
     CloudStatusChangedWarning,
     PathChangedWarning,
+    SongWasUnfavoritedWarning,
 )
 
 ### used in main daemon
@@ -32,7 +33,7 @@ def update_song_in_db(logger, track, cur):
     hash_track = track["hash"]
     # first check if the hash is present in db
     sql_str = f"""
-        select hash, cloud_status, path
+        select hash, cloud_status, path, is_favorited
         from tracks
         where hash = '{hash_track}'
     """
@@ -59,16 +60,22 @@ def update_song_in_db(logger, track, cur):
 
     old_cloud_status = result[0][1]
     if old_cloud_status != cloud_status:
-        logger.error(
+        logger.warning(
             f"Cloud status changed for {hash_track} from {old_cloud_status} to {cloud_status}"
         )
         raise CloudStatusChangedWarning(f"Cloud status changed for {hash_track}")
     old_track_path = result[0][2]
     if old_track_path != track_path:
-        logger.error(
+        logger.warning(
             f"Path changed for {hash_track} from {old_track_path} to {track_path}"
         )
         raise PathChangedWarning(f"Path changed for {hash_track}")
+    old_favorite_status = result[0][3]
+    if old_favorite_status != is_favorited:
+        logger.warning(
+            f"Favorite status changed for {hash_track} from {old_favorite_status} to {is_favorited}"
+        )
+        raise SongWasUnfavoritedWarning(f"Favorite status changed for {hash_track}")
 
 
 def insert_song_into_db(track, cur):

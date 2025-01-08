@@ -3,10 +3,10 @@
 cd /Users/alex/AppsMine/music-stats/
 
 source env/bin/activate;
-python3.12.8 music_stats_main_background_script.py # 3.12.8 is the version of python in the env
+python3.12 music_stats_main_background_script.py # 3.12.8 is the version of python in the env
 
 
-# python3.12.8 music_stats_checks.py # should be done in another script, running weekly
+# python3.12 music_stats_checks.py # should be done in another script, running weekly
 
 
 # already handled in main python script
