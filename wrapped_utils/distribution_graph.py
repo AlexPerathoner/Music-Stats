@@ -69,3 +69,25 @@ def plot_distribution(
 
     plt.tight_layout()
     return fig, ax
+
+
+def create_distribution_graph(df, time_listened_seconds, path):
+    df = df.sort_values(by="time_listened", ascending=False)
+    tot = len(df)
+    plt.figure(figsize=(12, 6))
+    plot_data = []
+    for i in range(tot):
+        top_songs_by_time = df.head(i + 1)
+        time_perc = (
+            top_songs_by_time["time_listened"].sum() / time_listened_seconds * 100
+        )
+        plot_data.append(time_perc)
+
+    plt.plot(range(tot), plot_data)
+    plt.fill_between(range(tot), plot_data, color="blue", alpha=0.2)
+    plt.xticks(range(0, tot, 100))
+    plt.grid(True, linestyle="--", alpha=0.7)
+    plt.title("Percentage of Time Listened by Top Songs")
+    plt.ylabel("Percentage of Total Listening Time")
+    plt.xlabel("Top Songs")
+    plt.savefig(path)

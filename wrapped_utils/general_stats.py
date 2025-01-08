@@ -1,14 +1,8 @@
-import datetime
-import sqlite3
-import matplotlib.pyplot as plt
 import pandas as pd
-import seaborn as sns
-import numpy as np
 import sys
 
 sys.path.append("..")
-from visualize_some_songs import visualize_song_time_series
-from wrapped_utils.distribution_graph import plot_distribution
+from wrapped_utils.distribution_graph import create_distribution_graph
 
 
 def dataframes_to_excel(dataframes, output_path, sheet_names=None):
@@ -314,14 +308,18 @@ def create_general_stats(conn, cur, start_date, end_date):
         ]
     )
     print("\nYour top 10 songs by time listened were:")
-    top_songs_by_time = listening_time_df.sort_values(
-        by="time_listened", ascending=False
-    ).head(10)
+    songs_by_time = listening_time_df.sort_values(by="time_listened", ascending=False)
+    top_songs_by_time = songs_by_time.head(10)
     print(top_songs_by_time[["song_name", "artist_name", "time_listened_str"]])
     top_songs_time = top_songs_by_time["time_listened"].sum()
     print(
         f"You listened to this top songs for: {format_seconds(top_songs_time)} ({round(top_songs_time/time_listened_seconds*100, 2)}% of total listening time)"
-    )  # todo here create graph that shows number of top songs / perc of total time listened
+    )
+    create_distribution_graph(
+        songs_by_time,
+        time_listened_seconds,
+        f"out/perc_time_by_top_songs_{start_date}_{end_date}.png",
+    )
 
     ### EXCEL EXPORT
     # dataframes_to_excel(
