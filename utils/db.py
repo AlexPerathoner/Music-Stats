@@ -71,14 +71,15 @@ def update_song_in_db(logger, track, cur):
         )
         raise PathChangedWarning(f"Path changed for {hash_track}")
     old_favorite_status = result[0][3]
-    if old_favorite_status != is_favorited:
+    if old_favorite_status != is_favorited and old_favorite_status == 1:
         logger.warning(
             f"Favorite status changed for {hash_track} from {old_favorite_status} to {is_favorited}"
         )
         raise SongWasUnfavoritedWarning(f"Favorite status changed for {hash_track}")
+    logger.debug(f"Updated {hash_track} in db")
 
 
-def insert_song_into_db(track, cur):
+def insert_song_into_db(track, cur, logger):
     song_name = track["song_name"]
     artist_name = track["artist_name"]
     album_name = track["album_name"]
@@ -87,10 +88,22 @@ def insert_song_into_db(track, cur):
     duration = track["duration"]
     cloud_status = track["cloud_status"]
     hash_track = track["hash"]
-    is_favorite = track["is_favorite"]
+    is_favorited = track["is_favorited"]
 
-    insert_sql_str = f"insert into tracks (song_name, artist_name, album_name, date_added, path, duration, cloud_status, hash, is_favorite) values ('{song_name}', '{artist_name}', '{album_name}', '{date_added}', '{track_path}', '{duration}', '{cloud_status}', '{hash_track}', '{is_favorite}');"
-    cur.execute(insert_sql_str)
+    cur.execute(
+        "insert into tracks (song_name, artist_name, album_name, date_added, path, duration, cloud_status, hash, is_favorited) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+            song_name,
+            artist_name,
+            album_name,
+            date_added,
+            track_path,
+            duration,
+            cloud_status,
+            hash_track,
+            is_favorited,
+        ),
+    )
     if cur.rowcount == 0 or cur.rowcount > 1:
         raise InsertTrackError(f"Could not insert track {hash_track}")
 

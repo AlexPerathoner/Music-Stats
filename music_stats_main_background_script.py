@@ -63,7 +63,8 @@ def import_csv_into_db(csv_file_path, insert_date):
         columns=["hash", "max_count"],
     )
 
-    updates_counter = 0
+    different_songs_updates_counter = 0
+    plays_updates_counter = 0
     new_songs_counter = 0
     errors = []
     warnings = []
@@ -81,7 +82,7 @@ def import_csv_into_db(csv_file_path, insert_date):
             else:
                 logger.info(f"Song not found in db: {hash_track}. Adding...")
                 try:
-                    insert_song_into_db(track, cur, conn)
+                    insert_song_into_db(track, cur, logger)
                     new_songs_counter += 1
                 except sqlite3.IntegrityError as e:
                     logger.error(f"Integrity error while inserting {hash_track}: {e}")
@@ -116,23 +117,26 @@ def import_csv_into_db(csv_file_path, insert_date):
             logger.error(f"Exception while updating {hash_track}: {e}")
             errors.append(f"Exception while updating {hash_track}: {e}")
 
-        old_max_play_count = max_counts_for_current_hash_df["max_count"].values[0]
-        if (
-            old_max_play_count == new_play_count
-        ):  # play count didn't change since last run, skipping song
-            continue
+        # for songs that were just added, there is no max_count in db yet. skip this part
+        if len(max_counts_for_current_hash_df) != 0:
+            # for songs that were already in db, there is a max_count in db. use that
+            old_max_play_count = max_counts_for_current_hash_df["max_count"].values[0]
+            if (
+                old_max_play_count == new_play_count
+            ):  # play count didn't change since last run, skipping song
+                continue
 
-        if old_max_play_count > new_play_count:
-            logger.error(
-                f"Song {hash_track} with play count {new_play_count} is lower than previous play count {old_max_play_count}"
-            )
-            errors.append(
-                f"Song {hash_track} with play count {new_play_count} is lower than previous play count {old_max_play_count}"
-            )
-            # is probably swapping tracks, exit immediately. high prio error
-            raise PlayCountDecreasedError(
-                f"Song {hash_track} with play count {new_play_count} is lower than previous play count {old_max_play_count}"
-            )
+            if old_max_play_count > new_play_count:
+                logger.error(
+                    f"Song {hash_track} with play count {new_play_count} is lower than previous play count {old_max_play_count}"
+                )
+                errors.append(
+                    f"Song {hash_track} with play count {new_play_count} is lower than previous play count {old_max_play_count}"
+                )
+                # is probably swapping tracks, exit immediately. high prio error
+                raise PlayCountDecreasedError(
+                    f"Song {hash_track} with play count {new_play_count} is lower than previous play count {old_max_play_count}"
+                )
         try:
             # check if row already exists
             if is_row_in_db(hash_track, insert_date, cur):
@@ -175,16 +179,17 @@ def import_csv_into_db(csv_file_path, insert_date):
                 f"Exception while inserting count data for {hash_track} {type(e)}: {e}"
             )
 
-        updates_counter += 1
+        different_songs_updates_counter += 1
+        plays_updates_counter += (new_play_count - old_max_play_count)
 
-    logger.info(f"Made {updates_counter} updates.")
+    logger.info(f"Made {different_songs_updates_counter} updates.")
 
     conn.set_trace_callback(None)
     logger.info("Committing and closing")
     conn.commit()
     conn.close()
 
-    return updates_counter, errors, warnings
+    return different_songs_updates_counter, plays_updates_counter, errors, warnings
 
 
 def main():
@@ -199,7 +204,7 @@ def main():
 
         start_time = datetime.datetime.now()
         todays_date = datetime.date.today().strftime("%Y-%m-%d")
-        updates_counter, errors, warnings = import_csv_into_db(
+        different_songs_updates_counter, plays_updates_counter, errors, warnings = import_csv_into_db(
             CSV_FILE_PATH, todays_date
         )
         end_time = datetime.datetime.now()
@@ -215,7 +220,7 @@ def main():
             display_error_notification()
         else:
             # showing only if no errors, draw attention to errors if any are present (even non-fatal)
-            display_finish_notification(updates_counter)
+            display_finish_notification(different_songs_updates_counter, plays_updates_counter)
     except (
         PlayCountDecreasedError,
         InsertPlayCountError,

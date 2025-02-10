@@ -14,11 +14,11 @@ def display_notification(title, message, beep_count=1):
         subprocess.run(["afplay", "/System/Library/Sounds/Sosumi.aiff"])
 
 
-def display_finish_notification(updates_counter):
-    if updates_counter > 0:
+def display_finish_notification(different_songs_updates_counter, plays_updates_counter):
+    if different_songs_updates_counter > 0:
         display_notification(
             "Music Stats: Data inserted!",
-            f"Data inserted: {updates_counter} rows inserted.",
+            f"Data inserted: {different_songs_updates_counter} rows inserted (songs updated). {plays_updates_counter} plays added.",
             0,
         )
     else:
@@ -29,7 +29,7 @@ def display_finish_notification(updates_counter):
 def display_warning_notification():
     display_notification(
         "Music Stats finished with warnings while inserting data!",
-        "Music Stats: ERROR inserting data!",
+        "Music Stats: warning inserting data!",
         3,
     )
 
