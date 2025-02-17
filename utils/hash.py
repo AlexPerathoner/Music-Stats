@@ -1,11 +1,8 @@
-import os
 import subprocess
-import sqlite3
+import os
+import pydub
 import hashlib
 import librosa
-import pandas as pd
-import pydub
-from utils.db import get_meta_data
 
 
 def get_hash(logger, file_path, level=0):
@@ -22,7 +19,7 @@ def get_hash(logger, file_path, level=0):
 
     def load_audio(filepath):
         try:
-            y, sr = librosa.load(filepath, mono=False, sr=22050)
+            y, sr = librosa.load(filepath, mono=False, sr=22050, out=logger.debug)
             if (y.shape[0] == 2 and len(y[0]) == 0) or (y.shape[0] > 2 and len(y) == 0):
                 logger.debug(f"Loading {filepath} with explicit duration")
                 dur = int(pydub.utils.mediainfo(filepath)["duration"].split(".")[0])
@@ -55,52 +52,33 @@ def get_hash(logger, file_path, level=0):
     return hash
 
 
-def main():
-    """deprecated"""
-    DB_FILE = "music-play-count-db.sqlite3"
-    meta_data = get_meta_data(DB_FILE)
-    df_meta = pd.DataFrame(
-        meta_data,
-        columns=[
-            "hash",
-            "song_name",
-            "artist_name",
-            "album_name",
-            "date_added",
-            "path",
-            "present_in_bak",
-            "present_in_lib",
-            "song_id",
-            "last_play_count",
-            "cloud_status",
-        ],
-    )
-
-    df_meta = df_meta[df_meta["last_play_count"].isna()]
-    df_meta = df_meta[df_meta["path"] != ""]
-    print(df_meta)
-
-    conn = sqlite3.connect(DB_FILE)
-
-    c = 0
-    tot = len(df_meta)
-    for row in df_meta.iterrows():
-        c += 1
-        path = row[1][5]
-        print("%d / %d" % (c, tot))
-        print("\tcalculating hash for %s" % path)
-        track_hash = get_hash(path)
-        if track_hash is None:
-            # fatal error, should show alert if happening in script
-            continue
-        print("\thash: %s" % track_hash)
-        conn.execute("UPDATE tracks SET hash = ? WHERE path = ?", (track_hash, path))
-        conn.commit()
-
-    print("Closing...")
-    conn.close()
-
-
 if __name__ == "__main__":
-    main()
-    # print(get_hash('/Users/alex/Music/Musica/Music/Sting/Unknown Album/06 I Burn for You.mp3'))
+    import logging
+    import datetime
+
+    logging.getLogger("numba.core.byteflow").disabled = True
+    logging.getLogger("numba.core.interpreter").disabled = True
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    LOG_DATEFMT = "%Y-%m-%d %H:%M:%S"
+    LOG_FORMAT = (
+        "\n[%(levelname)s/%(name)s:%(lineno)d] %(asctime)s "
+        + "(%(processName)s/%(threadName)s)\n> %(message)s"
+    )
+    FORMATTER = logging.Formatter(LOG_FORMAT, datefmt=LOG_DATEFMT)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    ch.setFormatter(FORMATTER)
+    logger.addHandler(ch)
+    fh = logging.FileHandler(
+        "testlog-" + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".log"
+    )
+    fh.setLevel(logging.DEBUG)  # FILE level
+    fh.setFormatter(FORMATTER)
+    logger.addHandler(fh)
+    print(
+        get_hash(
+            logger,
+            "/Users/alex/Music/Musica/Music/The Score/Pressure/Born For This.m4a",
+        )
+    )

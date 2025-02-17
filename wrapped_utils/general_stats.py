@@ -1,5 +1,6 @@
 import pandas as pd
 import sys
+import datetime
 
 sys.path.append("..")
 from wrapped_utils.distribution_graph import create_distribution_graph
@@ -147,23 +148,24 @@ def get_total_listening_time(conn, cur, start_date, end_date):
     for row in end_date_hash_to_count_df.itertuples():
         track_hash = row.hash
         end_value = row.count
-        filtered_df = start_value = start_date_hash_to_count_df[
+        filtered_df = start_date_hash_to_count_df[
             start_date_hash_to_count_df["hash"] == track_hash
         ]
         start_value = 0
         if track_hash not in songs_added_in_interval and len(filtered_df) != 0:
             start_value = filtered_df["count"].iloc[0]
         rows.append({"hash": track_hash, "increase": end_value - start_value})
+    # print(start_date_hash_to_count_df[])
     diff_hash_to_count_df = pd.DataFrame(rows)
-    # sort by value desc
-    diff_hash_to_count_df = diff_hash_to_count_df.sort_values(
-        by="increase", ascending=False
-    )
     total_number_of_songs = len(diff_hash_to_count_df)
     # filter by non 0 increase
     diff_hash_to_count_df = diff_hash_to_count_df[
         diff_hash_to_count_df["increase"] != 0
     ]
+    # sort by value desc
+    diff_hash_to_count_df = diff_hash_to_count_df.sort_values(
+        by="increase", ascending=False
+    )
     listened_songs = len(diff_hash_to_count_df)
     total_increases = diff_hash_to_count_df["increase"].sum()
 
@@ -208,6 +210,7 @@ def calculate_top_albums(listening_time_df):
         .head(15)
     )
     df["time_listened_str"] = df["time_listened"].apply(lambda x: format_seconds(x))
+    df = df.drop(columns=["time_listened"])
     return df
 
 
@@ -220,6 +223,7 @@ def calculate_top_artists(listening_time_df):
         .head(15)
     )
     df["time_listened_str"] = df["time_listened"].apply(lambda x: format_seconds(x))
+    df = df.drop(columns=["time_listened"])
     return df
 
 
@@ -277,7 +281,7 @@ def get_new_songs_count(cur, start_date, end_date):
     ).fetchone()[0]
 
 
-def create_general_stats(conn, cur, start_date, end_date):
+def create_general_stats(conn, cur, start_date, end_date, show_top_songs_overall):
     print(f"GENERAL STATS FOR {start_date} - {end_date}")
     (
         total_number_of_songs,
@@ -286,6 +290,9 @@ def create_general_stats(conn, cur, start_date, end_date):
         total_increases,
         listening_time_df,
     ) = get_total_listening_time(conn, cur, start_date, end_date)
+    if time_listened_seconds == 0:
+        print("No data found for this period.")
+        exit(0)
     print(
         f"You listened to {listened_songs} unique songs, for a total of {total_increases} times."
     )
@@ -298,8 +305,14 @@ def create_general_stats(conn, cur, start_date, end_date):
     print(f"You added {new_artists_count} new artists to your library.")
 
     seconds_in_one_year = 365 * 24 * 60 * 60
+    # parse start and end date to datetime objects
+    start_date = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+    end_date = datetime.datetime.strptime(end_date, "%Y-%m-%d") + datetime.timedelta(
+        days=1
+    )  # end of day
+    seconds_in_time_period = (end_date - start_date).total_seconds()
     print(
-        f"Total time listened (HH:mm:ss): {format_seconds(time_listened_seconds)} ({round(time_listened_seconds/seconds_in_one_year*100, 2)}% of a year)"
+        f"Total time listened (HH:mm:ss): {format_seconds(time_listened_seconds)} ({round(time_listened_seconds/seconds_in_one_year*100, 2)}% of a year, or {round(time_listened_seconds/seconds_in_time_period*100, 2)}% of the time period)"
     )
     print("\nYour top 10 songs by times (play count) listened were:")
     print(
@@ -313,7 +326,7 @@ def create_general_stats(conn, cur, start_date, end_date):
     print(top_songs_by_time[["song_name", "artist_name", "time_listened_str"]])
     top_songs_time = top_songs_by_time["time_listened"].sum()
     print(
-        f"You listened to this top songs for: {format_seconds(top_songs_time)} ({round(top_songs_time/time_listened_seconds*100, 2)}% of total listening time)"
+        f"You listened to these top songs for: {format_seconds(top_songs_time)} ({round(top_songs_time/time_listened_seconds*100, 2)}% of total listening time)"
     )
     create_distribution_graph(
         songs_by_time,
@@ -334,6 +347,7 @@ def create_general_stats(conn, cur, start_date, end_date):
     print("\nYour top albums by time listened were:")
     print(listening_time_grouped_by_album_df)
 
-    top_songs_overall_df = calculate_top_songs_overall(cur, end_date)
-    print("\nYour top songs overall were:")
-    print(top_songs_overall_df)
+    if show_top_songs_overall:
+        top_songs_overall_df = calculate_top_songs_overall(cur, end_date)
+        print("\nYour top songs overall were:")
+        print(top_songs_overall_df)
