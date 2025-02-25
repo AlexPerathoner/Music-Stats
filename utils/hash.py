@@ -19,7 +19,7 @@ def get_hash(logger, file_path, level=0):
 
     def load_audio(filepath):
         try:
-            y, sr = librosa.load(filepath, mono=False, sr=22050, out=logger.debug)
+            y, sr = librosa.load(filepath, mono=False, sr=22050)
             if (y.shape[0] == 2 and len(y[0]) == 0) or (y.shape[0] > 2 and len(y) == 0):
                 logger.debug(f"Loading {filepath} with explicit duration")
                 dur = int(pydub.utils.mediainfo(filepath)["duration"].split(".")[0])

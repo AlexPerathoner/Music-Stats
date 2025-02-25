@@ -5,8 +5,28 @@ daily checks to make sure everything is as expected
 import logging
 import sqlite3
 import pandas as pd
-import datetime
+from datetime import datetime
 import os
+import subprocess
+
+
+def display_notification(title, message, beep_count=1):
+    subprocess.run(
+        [
+            "osascript",
+            "-e",
+            f'display notification "{message}" with title "{title}"',
+        ]
+    )
+    if beep_count > 0:
+        subprocess.run(["osascript", "-e", f"beep {beep_count}"])
+        subprocess.run(["afplay", "/System/Library/Sounds/Sosumi.aiff"])
+
+
+def display_error_check_notification():
+    display_notification(
+        "Music Stats: ERROR checking data!", "Music Stats: ERROR checking data!", 5
+    )
 
 
 def check_path_exists(path):
@@ -183,6 +203,33 @@ def get_songs_inconsistent_increase(cur):
     return tracks_df[tracks_df["hash"].isin(failing_hashes)]
 
 
+def days_between(d1, d2):
+    d1 = datetime.strptime(d1, "%Y-%m-%d")
+    d2 = datetime.strptime(d2, "%Y-%m-%d")
+    return abs((d2 - d1).days)
+
+
+def get_latest_plays(cur):
+    """Get latest play count for any song. Should not be older than 2 days."""
+    # get all play data for song
+    cur.execute(
+        f"""
+        select max(date_count)
+from play_counts;
+        """
+    )
+    rows = cur.fetchall()
+    play_data_df = pd.DataFrame(
+        rows,
+        columns=["max_date"],
+    )
+    max_date = play_data_df["max_date"].values[0]
+    # todays date in YYYY-MM-DD format
+    today = datetime.now().strftime("%Y-%m-%d")
+    # if difference between today and max_date is greater than 2 days, return 0
+    return days_between(today, max_date)
+
+
 def main(logger):
     DB_FILE = "music-play-count-db.sqlite3"
     conn = sqlite3.connect(DB_FILE)
@@ -231,9 +278,15 @@ def main(logger):
         logger.error("Found %d play count data with missing tracks" % len(df))
         logger.error(df)
         errors += 1
+    days = get_latest_plays(cur)
+    logger.info("Last play data is %d days ago" % days)
+    if days >= 2:
+        logger.error("Last play data is %d days ago" % days)
+        errors += 1
 
     if errors > 0:
         logger.error("Found %d errors" % errors)
+        display_error_check_notification()
         exit(1)
     else:
         logger.info("Finished with no errors found.")
@@ -254,9 +307,7 @@ if __name__ == "__main__":
     ch.setFormatter(FORMATTER)
     logger.addHandler(ch)
     fh = logging.FileHandler(
-        "logs/checks-script-"
-        + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-        + ".log"
+        "logs/checks-script-" + datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + ".log"
     )
     fh.setLevel(logging.DEBUG)  # FILE level
     fh.setFormatter(FORMATTER)
